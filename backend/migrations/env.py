@@ -40,8 +40,13 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
+    config_section = config.get_section(config.config_ini_section)
+
+    if config_section is None:
+        raise RuntimeError("Alembic configuration section is missing.")
+
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        config_section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
