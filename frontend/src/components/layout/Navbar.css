@@ -1,0 +1,129 @@
+
+/* =========================================
+   SPOONFUL NAVBAR
+========================================= */
+
+.app-navbar {
+  width: 100%;
+  min-height: 82px;
+  padding: 12px 6%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #F8F7F1;
+  border-bottom: 1px solid #E8E8E2;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* BRAND */
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: 'Playfair Display', serif;
+  font-size: 27px;
+  font-weight: 600;
+  color: #40566D;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* TRANSPARENT SPOONFUL LOGO */
+
+.brand-logo {
+  display: block;
+  width: 76px;
+  height: 62px;
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
+  mix-blend-mode: normal;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.app-brand:hover .brand-logo {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* NAVIGATION LINKS */
+
+.app-nav-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.app-nav-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 15px;
+  border-radius: 30px;
+  color: #788692;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.app-nav-links a:hover {
+  background: #E8EEF5;
+  color: #40566D;
+}
+
+.app-nav-links a.active {
+  background: #E8EEF5;
+  color: #40566D;
+}
+
+/* TABLET */
+
+@media (max-width: 760px) {
+  .app-navbar {
+    padding: 12px 5%;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .app-nav-links {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 5px;
+  }
+
+  .app-nav-links a {
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+}
+
+/* MOBILE */
+
+@media (max-width: 420px) {
+  .app-brand {
+    font-size: 24px;
+  }
+
+  .brand-logo {
+    width: 65px;
+    height: 54px;
+  }
+
+  .app-nav-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .app-nav-links a {
+    padding: 9px 5px;
+  }
+}

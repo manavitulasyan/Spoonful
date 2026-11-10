@@ -1,0 +1,266 @@
+
+.onboarding-page {
+  min-height: 100vh;
+  background: #F7F8F7;
+  color: #303B43;
+}
+
+.onboarding-nav {
+  height: 82px;
+  padding: 0 8%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #E5E9EC;
+}
+
+.onboarding-brand {
+  color: #40566D;
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.onboarding-brand span {
+  color: #718BAA;
+}
+
+.skip-button {
+  border: none;
+  background: transparent;
+  color: #718BAA;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.onboarding-main {
+  width: min(720px, 90%);
+  margin: 0 auto;
+  padding: 65px 0 45px;
+}
+
+.onboarding-intro {
+  text-align: center;
+  margin-bottom: 38px;
+}
+
+.onboarding-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #718BAA;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.onboarding-intro h1 {
+  margin: 20px 0 15px;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(38px, 5vw, 52px);
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.onboarding-intro h1 span {
+  color: #718BAA;
+  font-style: italic;
+}
+
+.onboarding-intro > p {
+  max-width: 510px;
+  margin: auto;
+  color: #788692;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.preference-card {
+  padding: 35px 38px;
+  background: white;
+  border: 1px solid #E5E9EC;
+  border-radius: 22px;
+  box-shadow: 0 15px 40px rgba(64, 86, 109, 0.05);
+}
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  color: #718BAA;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.progress-track {
+  height: 5px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #E8EEF5;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: #718BAA;
+  transition: width 0.3s ease;
+}
+
+.preference-content {
+  padding: 40px 0 30px;
+}
+
+.preference-category {
+  color: #A9BDD3;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.preference-content h2 {
+  margin-top: 12px;
+  font-family: 'Playfair Display', serif;
+  font-size: 29px;
+  font-weight: 500;
+  color: #40566D;
+}
+
+.preference-content > p:not(.selection-hint) {
+  margin-top: 10px;
+  color: #89949D;
+  font-size: 13px;
+}
+
+.preference-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-top: 30px;
+}
+
+.preference-option {
+  min-height: 45px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #DDE5EC;
+  border-radius: 10px;
+  background: #FAFBFC;
+  color: #526577;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.preference-option:hover {
+  border-color: #A9BDD3;
+  background: #F3F6F9;
+}
+
+.preference-option.selected {
+  border-color: #718BAA;
+  background: #E8EEF5;
+  color: #40566D;
+  font-weight: 600;
+}
+
+.selection-hint {
+  margin-top: 22px;
+  color: #89949D;
+  font-size: 11px;
+}
+
+.preference-navigation {
+  padding-top: 23px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #EDF0F2;
+}
+
+.back-button,
+.continue-button {
+  min-height: 45px;
+  padding: 0 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.back-button {
+  border: 1px solid #DDE5EC;
+  background: white;
+  color: #718BAA;
+}
+
+.back-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.continue-button {
+  border: none;
+  background: #718BAA;
+  color: white;
+}
+
+.continue-button:hover {
+  background: #40566D;
+}
+
+.onboarding-footer-note {
+  margin-top: 24px;
+  text-align: center;
+  color: #89949D;
+  font-size: 12px;
+}
+
+.onboarding-bottom {
+  padding: 22px 8%;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #E5E9EC;
+  color: #89949D;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .onboarding-nav {
+    padding: 0 5%;
+  }
+
+  .onboarding-main {
+    padding-top: 45px;
+  }
+
+  .preference-card {
+    padding: 25px 20px;
+  }
+
+  .preference-content h2 {
+    font-size: 25px;
+  }
+
+  .preference-option {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .onboarding-bottom {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
