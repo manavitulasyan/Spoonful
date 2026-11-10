@@ -1,0 +1,387 @@
+
+.dashboard-page {
+  min-height: 100vh;
+  background: #F7F8F7;
+  color: #303B43;
+}
+
+.dashboard-container {
+  max-width: 1250px;
+  margin: auto;
+  padding: 55px 6%;
+}
+
+/* WELCOME */
+
+.dashboard-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 38px;
+}
+
+.dashboard-eyebrow,
+.section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #718BAA;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.dashboard-heading h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(32px, 4vw, 45px);
+  font-weight: 500;
+  margin: 16px 0 10px;
+}
+
+.dashboard-heading p,
+.section-heading p {
+  color: #788692;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.welcome-decoration {
+  font-size: 95px;
+  color: #A9BDD3;
+  opacity: 0.6;
+}
+
+/* DAILY CHECK-IN */
+
+.checkin-section {
+  padding: 38px 42px;
+  background: #DCE6F0;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 55px;
+}
+
+.checkin-content h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 31px;
+  font-weight: 500;
+  margin: 13px 0;
+  color: #40566D;
+}
+
+.checkin-content > p {
+  color: #667C92;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.feeling-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.feeling-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 17px;
+  border: 1px solid #A9BDD3;
+  border-radius: 25px;
+  background: rgba(255,255,255,0.6);
+  color: #526A83;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.feeling-button:hover,
+.feeling-button.selected {
+  background: #718BAA;
+  color: white;
+  border-color: #718BAA;
+}
+
+.checkin-feedback {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  color: #40566D !important;
+}
+
+.checkin-decoration {
+  min-width: 180px;
+  text-align: center;
+  color: #718BAA;
+}
+
+.checkin-decoration span {
+  font-size: 75px;
+}
+
+.checkin-decoration p {
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* COMMON SECTION */
+
+.dashboard-section {
+  margin-bottom: 55px;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  margin-bottom: 23px;
+  gap: 15px;
+}
+
+.section-heading h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 29px;
+  font-weight: 500;
+  margin: 9px 0 6px;
+}
+
+.view-link,
+.journal-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #718BAA;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* SAFE FOOD CARDS */
+
+.food-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.food-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 22px;
+  background: white;
+  border: 1px solid #E5E9EC;
+  border-radius: 18px;
+  transition: 0.2s;
+}
+
+.food-preview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(64, 86, 109, 0.07);
+}
+
+.food-emoji {
+  width: 55px;
+  height: 55px;
+  display: grid;
+  place-items: center;
+  background: #E8EEF5;
+  border-radius: 15px;
+  font-size: 28px;
+}
+
+.food-preview-card h3 {
+  font-size: 15px;
+  margin-bottom: 5px;
+}
+
+.food-preview-card span {
+  color: #89949D;
+  font-size: 12px;
+}
+
+.food-preview-card > svg {
+  margin-left: auto;
+  color: #8DA3BA;
+}
+
+.add-food-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  border: 1px dashed #A9BDD3;
+  border-radius: 18px;
+  color: #718BAA;
+  background: #F0F4F8;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+/* EXPLORE BANNER */
+
+.explore-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  padding: 35px 40px;
+  background: #E8EEF5;
+  border-radius: 22px;
+  color: #40566D;
+}
+
+.explore-banner h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 25px;
+  font-weight: 500;
+  margin: 13px 0 8px;
+}
+
+.explore-banner p {
+  color: #718196;
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 460px;
+}
+
+.explore-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 20px;
+  padding: 12px 20px;
+  background: #718BAA;
+  color: white;
+  border-radius: 25px;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.explore-illustration {
+  font-size: 85px;
+  padding: 15px;
+}
+
+/* JOURNAL SHORTCUT */
+
+.journal-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  background: white;
+  border: 1px solid #E5E9EC;
+  border-radius: 18px;
+}
+
+.journal-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: #E8EEF5;
+  color: #718BAA;
+  border-radius: 14px;
+}
+
+.journal-shortcut h3 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 500;
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.journal-shortcut p {
+  color: #89949D;
+  font-size: 12px;
+}
+
+.journal-link {
+  margin-left: auto;
+}
+
+/* FOOTER */
+
+.dashboard-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 8%;
+  border-top: 1px solid #E5E9EC;
+  color: #89949D;
+  font-size: 12px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 850px) {
+  .food-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .checkin-decoration {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-container {
+    padding: 35px 5%;
+  }
+
+  .dashboard-heading {
+    margin-bottom: 28px;
+  }
+
+  .welcome-decoration {
+    display: none;
+  }
+
+  .checkin-section {
+    padding: 27px 22px;
+  }
+
+  .checkin-content h2 {
+    font-size: 26px;
+  }
+
+  .food-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .explore-banner {
+    padding: 28px 23px;
+  }
+
+  .explore-illustration {
+    display: none;
+  }
+
+  .journal-shortcut {
+    flex-wrap: wrap;
+  }
+
+  .journal-link {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .dashboard-footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
