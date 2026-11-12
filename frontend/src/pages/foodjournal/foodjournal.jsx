@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BookOpen,
   Plus,
@@ -10,68 +9,76 @@ import {
   Frown,
   X,
   Trash2,
-  Sparkles
+  Sparkles,
+  Pencil
 } from 'lucide-react';
 
 import Navbar from '../../components/layout/Navbar';
+import {
+  getJournalEntries,
+  createJournalEntry,
+  updateJournalEntry,
+  deleteJournalEntry
+} from '../../services/api';
+
 import './foodjournal.css';
 
-const initialEntries = [
-  {
-    id: 1,
-    food: 'Creamy pasta',
-    date: '2026-11-09',
-    feeling: 'Comfortable',
-    texture: 'Creamy',
-    taste: 'Mild',
-    smell: 'Pleasant',
-    note: 'This felt familiar and easy to enjoy.',
-    emoji: '🍝'
-  },
-  {
-    id: 2,
-    food: 'Strawberries',
-    date: '2026-11-08',
-    feeling: 'Happy',
-    texture: 'Juicy',
-    taste: 'Sweet',
-    smell: 'Fresh',
-    note: 'Loved how fresh and refreshing they tasted.',
-    emoji: '🍓'
-  },
-  {
-    id: 3,
-    food: 'Vegetable sandwich',
-    date: '2026-11-07',
-    feeling: 'Neutral',
-    texture: 'Crunchy',
-    taste: 'Savoury',
-    smell: 'Mild',
-    note: 'A simple meal. Nothing overwhelming.',
-    emoji: '🥪'
-  }
+const feelingOptions = [
+  { label: 'Comfortable', icon: Smile, rating: 5 },
+  { label: 'Happy', icon: Heart, rating: 4 },
+  { label: 'Neutral', icon: Meh, rating: 3 },
+  { label: 'Unsure', icon: Frown, rating: 2 }
 ];
 
-const feelingOptions = [
-  { label: 'Comfortable', icon: Smile },
-  { label: 'Happy', icon: Heart },
-  { label: 'Neutral', icon: Meh },
-  { label: 'Unsure', icon: Frown }
-];
+const emptyEntry = {
+  food: '',
+  feeling: 'Comfortable',
+  note: ''
+};
+
+function getFeelingFromRating(rating) {
+  if (rating >= 5) return 'Comfortable';
+  if (rating === 4) return 'Happy';
+  if (rating === 3) return 'Neutral';
+  return 'Unsure';
+}
+
+function formatDate(date) {
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+}
 
 function FoodJournal() {
-  const [entries, setEntries] = useState(initialEntries);
+  const [entries, setEntries] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [newEntry, setNewEntry] = useState(emptyEntry);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const [newEntry, setNewEntry] = useState({
-    food: '',
-    feeling: 'Comfortable',
-    texture: 'Soft',
-    taste: 'Mild',
-    smell: 'Pleasant',
-    note: '',
-    emoji: '🍽️'
-  });
+  // Load journal history from the backend.
+  useEffect(() => {
+    async function loadEntries() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const data = await getJournalEntries();
+        setEntries(data);
+      } catch (err) {
+        setError(err.message || 'Unable to load your journal.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadEntries();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,44 +89,108 @@ function FoodJournal() {
     }));
   };
 
-  const handleAddEntry = (e) => {
+  const resetForm = () => {
+    setNewEntry(emptyEntry);
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  // Open the form for a new entry.
+  const openNewEntryForm = () => {
+    setError('');
+    setSuccess('');
+    setNewEntry(emptyEntry);
+    setEditingId(null);
+    setShowForm(true);
+  };
+
+  // Open the form with an existing entry's information.
+  const handleEditEntry = (entry) => {
+    setError('');
+    setSuccess('');
+
+    setNewEntry({
+      food: entry.food_name,
+      feeling: getFeelingFromRating(entry.rating || 3),
+      note: entry.notes || ''
+    });
+
+    setEditingId(entry.id);
+    setShowForm(true);
+  };
+
+  // Create or update an entry.
+  const handleSaveEntry = async (e) => {
     e.preventDefault();
 
     if (!newEntry.food.trim()) return;
 
-    const entry = {
-      ...newEntry,
-      id: Date.now(),
-      date: new Date().toLocaleDateString('en-CA')
+    const selectedFeeling = feelingOptions.find(
+      (item) => item.label === newEntry.feeling
+    );
+
+    const payload = {
+      food_name: newEntry.food.trim(),
+      rating: selectedFeeling?.rating ?? 3,
+      notes: newEntry.note.trim() || null
     };
 
-    setEntries((previous) => [entry, ...previous]);
+    try {
+      setSaving(true);
+      setError('');
+      setSuccess('');
 
-    setNewEntry({
-      food: '',
-      feeling: 'Comfortable',
-      texture: 'Soft',
-      taste: 'Mild',
-      smell: 'Pleasant',
-      note: '',
-      emoji: '🍽️'
-    });
+      if (editingId !== null) {
+        const updatedEntry = await updateJournalEntry(
+          editingId,
+          payload
+        );
 
-    setShowForm(false);
+        setEntries((previous) =>
+          previous.map((entry) =>
+            entry.id === editingId ? updatedEntry : entry
+          )
+        );
+
+        setSuccess('Your journal entry has been updated.');
+      } else {
+        const createdEntry = await createJournalEntry(payload);
+
+        setEntries((previous) =>
+          [createdEntry, ...previous].sort(
+            (a, b) =>
+              new Date(b.experienced_at) -
+              new Date(a.experienced_at)
+          )
+        );
+
+        setSuccess('Your journal entry has been saved.');
+      }
+
+      resetForm();
+    } catch (err) {
+      setError(err.message || 'Unable to save your journal entry.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteEntry = (id) => {
-    setEntries((previous) =>
-      previous.filter((entry) => entry.id !== id)
-    );
-  };
+  // Delete an entry from the backend.
+  const handleDeleteEntry = async (id) => {
+    try {
+      setError('');
+      setSuccess('');
 
-  const formatDate = (date) => {
-    return new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+      await deleteJournalEntry(id);
+
+      setEntries((previous) =>
+        previous.filter((entry) => entry.id !== id)
+      );
+
+      setSuccess('Your journal entry has been deleted.');
+    } catch (err) {
+      setError(err.message || 'Unable to delete this entry.');
+    }
   };
 
   return (
@@ -131,7 +202,6 @@ function FoodJournal() {
 
         {/* PAGE HEADING */}
         <section className="journal-heading">
-
           <div>
             <span className="journal-eyebrow">
               <BookOpen size={15} />
@@ -149,12 +219,10 @@ function FoodJournal() {
           <div className="journal-heading-decoration">
             <BookOpen size={39} />
           </div>
-
         </section>
 
         {/* INTRO BANNER */}
         <section className="journal-welcome">
-
           <div className="journal-welcome-icon">
             <Heart size={24} />
           </div>
@@ -168,14 +236,12 @@ function FoodJournal() {
           </div>
 
           <Sparkles className="journal-sparkle" size={23} />
-
         </section>
 
         {/* JOURNAL SECTION */}
         <section className="journal-entries-section">
 
           <div className="journal-toolbar">
-
             <div>
               <span className="journal-section-tag">YOUR MEMORIES</span>
               <h2>Recent experiences</h2>
@@ -185,22 +251,33 @@ function FoodJournal() {
             <button
               type="button"
               className="add-journal-button"
-              onClick={() => setShowForm(true)}
+              onClick={openNewEntryForm}
             >
               <Plus size={18} />
               Add an entry
             </button>
-
           </div>
 
+          {error && (
+            <p role="alert">{error}</p>
+          )}
+
+          {success && (
+            <p role="status">{success}</p>
+          )}
+
           {/* TIMELINE */}
-          {entries.length > 0 ? (
+          {loading ? (
+            <p>Loading your journal entries...</p>
+          ) : entries.length > 0 ? (
             <div className="journal-timeline">
 
               {entries.map((entry) => {
+                const feeling = getFeelingFromRating(entry.rating || 3);
+
                 const FeelingIcon =
                   feelingOptions.find(
-                    (item) => item.label === entry.feeling
+                    (item) => item.label === feeling
                   )?.icon || Heart;
 
                 return (
@@ -208,7 +285,7 @@ function FoodJournal() {
 
                     <div className="journal-date">
                       <CalendarDays size={15} />
-                      {formatDate(entry.date)}
+                      {formatDate(entry.experienced_at)}
                     </div>
 
                     <div className="journal-entry-card">
@@ -216,43 +293,50 @@ function FoodJournal() {
                       <div className="journal-entry-top">
 
                         <div className="journal-food-info">
-
                           <div className="journal-food-emoji">
-                            {entry.emoji}
+                            🍽️
                           </div>
 
                           <div>
-                            <h3>{entry.food}</h3>
+                            <h3>{entry.food_name}</h3>
                             <span>Food experience</span>
                           </div>
-
                         </div>
 
-                        <button
-                          type="button"
-                          className="delete-entry-button"
-                          onClick={() => handleDeleteEntry(entry.id)}
-                          aria-label={`Delete ${entry.food} entry`}
-                        >
-                          <Trash2 size={17} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="delete-entry-button"
+                            onClick={() => handleEditEntry(entry)}
+                            aria-label={`Edit ${entry.food_name} entry`}
+                          >
+                            <Pencil size={17} />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="delete-entry-button"
+                            onClick={() => handleDeleteEntry(entry.id)}
+                            aria-label={`Delete ${entry.food_name} entry`}
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                        </div>
 
                       </div>
 
                       <div className="journal-feeling">
                         <FeelingIcon size={16} />
-                        <span>Felt {entry.feeling.toLowerCase()}</span>
+                        <span>Felt {feeling.toLowerCase()}</span>
                       </div>
 
                       <div className="journal-sensory-tags">
-                        <span>Texture: {entry.texture}</span>
-                        <span>Taste: {entry.taste}</span>
-                        <span>Smell: {entry.smell}</span>
+                        <span>Rating: {entry.rating ?? 'Not rated'}/5</span>
                       </div>
 
-                      {entry.note && (
+                      {entry.notes && (
                         <p className="journal-entry-note">
-                          "{entry.note}"
+                          "{entry.notes}"
                         </p>
                       )}
 
@@ -273,7 +357,7 @@ function FoodJournal() {
 
               <button
                 type="button"
-                onClick={() => setShowForm(true)}
+                onClick={openNewEntryForm}
               >
                 <Plus size={17} />
                 Add your first entry
@@ -297,11 +381,11 @@ function FoodJournal() {
 
       </main>
 
-      {/* ADD ENTRY MODAL */}
+      {/* ADD / EDIT ENTRY MODAL */}
       {showForm && (
         <div
           className="journal-modal-overlay"
-          onClick={() => setShowForm(false)}
+          onClick={() => !saving && resetForm()}
         >
           <div
             className="journal-modal"
@@ -312,26 +396,29 @@ function FoodJournal() {
           >
 
             <div className="journal-modal-header">
-
               <div>
                 <span className="journal-section-tag">
                   A MOMENT TO YOURSELF
                 </span>
-                <h2 id="journal-modal-title">New journal entry</h2>
+                <h2 id="journal-modal-title">
+                  {editingId !== null
+                    ? 'Edit journal entry'
+                    : 'New journal entry'}
+                </h2>
               </div>
 
               <button
                 type="button"
                 className="journal-modal-close"
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 aria-label="Close journal form"
+                disabled={saving}
               >
                 <X size={20} />
               </button>
-
             </div>
 
-            <form onSubmit={handleAddEntry}>
+            <form onSubmit={handleSaveEntry}>
 
               <div className="journal-form-group">
                 <label htmlFor="journal-food">What did you eat?</label>
@@ -345,27 +432,6 @@ function FoodJournal() {
                   required
                   autoFocus
                 />
-              </div>
-
-              <div className="journal-form-group">
-                <label htmlFor="journal-emoji">Choose an emoji</label>
-                <select
-                  id="journal-emoji"
-                  name="emoji"
-                  value={newEntry.emoji}
-                  onChange={handleChange}
-                >
-                  <option value="🍽️">🍽️ Food</option>
-                  <option value="🍝">🍝 Pasta</option>
-                  <option value="🥪">🥪 Sandwich</option>
-                  <option value="🍓">🍓 Strawberry</option>
-                  <option value="🍚">🍚 Rice</option>
-                  <option value="🥗">🥗 Salad</option>
-                  <option value="🍞">🍞 Bread</option>
-                  <option value="🥣">🥣 Bowl</option>
-                  <option value="🍎">🍎 Apple</option>
-                  <option value="🥛">🥛 Milk</option>
-                </select>
               </div>
 
               <div className="journal-form-group">
@@ -393,54 +459,10 @@ function FoodJournal() {
                 </div>
               </div>
 
-              <div className="journal-form-row">
-
-                <div className="journal-form-group">
-                  <label htmlFor="journal-texture">Texture</label>
-                  <select
-                    id="journal-texture"
-                    name="texture"
-                    value={newEntry.texture}
-                    onChange={handleChange}
-                  >
-                    {['Soft', 'Crunchy', 'Creamy', 'Smooth', 'Chewy', 'Crispy', 'Juicy'].map((item) => (
-                      <option key={item}>{item}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="journal-form-group">
-                  <label htmlFor="journal-taste">Taste</label>
-                  <select
-                    id="journal-taste"
-                    name="taste"
-                    value={newEntry.taste}
-                    onChange={handleChange}
-                  >
-                    {['Mild', 'Sweet', 'Salty', 'Sour', 'Spicy', 'Savoury'].map((item) => (
-                      <option key={item}>{item}</option>
-                    ))}
-                  </select>
-                </div>
-
-              </div>
-
               <div className="journal-form-group">
-                <label htmlFor="journal-smell">Smell</label>
-                <select
-                  id="journal-smell"
-                  name="smell"
-                  value={newEntry.smell}
-                  onChange={handleChange}
-                >
-                  {['Pleasant', 'Fresh', 'Mild', 'Herbal', 'Strong', 'Neutral'].map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="journal-form-group">
-                <label htmlFor="journal-note">Anything you'd like to remember? (Optional)</label>
+                <label htmlFor="journal-note">
+                  Anything you'd like to remember? (Optional)
+                </label>
                 <textarea
                   id="journal-note"
                   name="note"
@@ -451,8 +473,17 @@ function FoodJournal() {
                 />
               </div>
 
-              <button type="submit" className="save-journal-button">
-                Save my entry <Plus size={17} />
+              <button
+                type="submit"
+                className="save-journal-button"
+                disabled={saving}
+              >
+                {saving
+                  ? 'Saving...'
+                  : editingId !== null
+                    ? 'Update my entry'
+                    : 'Save my entry'}
+                <Plus size={17} />
               </button>
 
             </form>

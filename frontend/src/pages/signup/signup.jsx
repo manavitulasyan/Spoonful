@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -10,12 +9,14 @@ import {
 } from 'lucide-react';
 
 import Brand from '../../components/layout/Brand';
+import { registerUser } from '../../services/api';
 import './signup.css';
 
 function Signup() {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -37,11 +38,25 @@ function Signup() {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
+    const name = formData.name.trim();
+    const email = formData.email.trim();
+
+    if (name.length < 2) {
+      setError('Name must contain at least 2 characters.');
+      return;
+    }
 
     if (formData.password.length < 8) {
       setError('Password must contain at least 8 characters.');
+      return;
+    }
+
+    if (formData.password.length > 128) {
+      setError('Password cannot exceed 128 characters.');
       return;
     }
 
@@ -50,14 +65,30 @@ function Signup() {
       return;
     }
 
-    // Temporary frontend flow.
-    // Connect this to the FastAPI signup endpoint later.
-    navigate('/onboarding', {
-      state: {
-        name: formData.name,
-        email: formData.email
-      }
-    });
+    setLoading(true);
+
+    try {
+      await registerUser({
+        name,
+        email,
+        password: formData.password
+      });
+
+      navigate('/login', {
+        replace: true,
+        state: {
+          email,
+          message: 'Account created successfully! Please log in.'
+        }
+      });
+
+    } catch (err) {
+      setError(
+        err.message || 'Registration failed. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -138,6 +169,8 @@ function Signup() {
                   value={formData.name}
                   onChange={handleChange}
                   autoComplete="name"
+                  minLength={2}
+                  maxLength={100}
                   required
                 />
               </div>
@@ -172,6 +205,7 @@ function Signup() {
                     onChange={handleChange}
                     autoComplete="new-password"
                     minLength={8}
+                    maxLength={128}
                     required
                   />
 
@@ -222,9 +256,10 @@ function Signup() {
               <button
                 type="submit"
                 className="signup-submit"
+                disabled={loading}
               >
-                Create account
-                <ArrowRight size={18} />
+                {loading ? 'Creating account...' : 'Create account'}
+                {!loading && <ArrowRight size={18} />}
               </button>
 
             </form>

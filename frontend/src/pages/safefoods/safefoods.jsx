@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Heart,
   Plus,
@@ -12,60 +11,25 @@ import {
 } from 'lucide-react';
 
 import Navbar from '../../components/layout/Navbar';
-import './safefoods.css';
+import {
+  getSavedFoods,
+  addSavedFood,
+  deleteSavedFood
+} from '../../services/api';
 
-const initialFoods = [
-  {
-    id: 1,
-    name: 'Pasta',
-    category: 'Meals',
-    note: 'Familiar favourite',
-    emoji: '🍝'
-  },
-  {
-    id: 2,
-    name: 'Sandwich',
-    category: 'Meals',
-    note: 'Easy and familiar',
-    emoji: '🥪'
-  },
-  {
-    id: 3,
-    name: 'Strawberries',
-    category: 'Fruits',
-    note: 'Fresh and refreshing',
-    emoji: '🍓'
-  },
-  {
-    id: 4,
-    name: 'Yoghurt',
-    category: 'Snacks',
-    note: 'Smooth and comforting',
-    emoji: '🥣'
-  },
-  {
-    id: 5,
-    name: 'Toast',
-    category: 'Snacks',
-    note: 'Simple and predictable',
-    emoji: '🍞'
-  },
-  {
-    id: 6,
-    name: 'Rice',
-    category: 'Meals',
-    note: 'A familiar staple',
-    emoji: '🍚'
-  }
-];
+import './safefoods.css';
 
 const categories = ['All', 'Meals', 'Fruits', 'Snacks', 'Drinks'];
 
 function SafeFoods() {
-  const [foods, setFoods] = useState(initialFoods);
+  const [foods, setFoods] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const [newFood, setNewFood] = useState({
     name: '',
@@ -74,42 +38,91 @@ function SafeFoods() {
     emoji: '🍽️'
   });
 
-  const filteredFoods = foods.filter((food) => {
-    const matchesCategory =
-      activeCategory === 'All' || food.category === activeCategory;
+  // Load saved foods from the backend.
+  useEffect(() => {
+    async function loadFoods() {
+      try {
+        setLoading(true);
+        setError('');
 
-    const matchesSearch = food.name
+        const data = await getSavedFoods();
+        setFoods(data);
+      } catch (err) {
+        setError(err.message || 'Unable to load your saved foods.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadFoods();
+  }, []);
+
+  // Filter foods by category and search.
+  const filteredFoods = foods.filter((food) => {
+    const foodName = food.food?.name || '';
+
+    const matchesCategory =
+      activeCategory === 'All' ||
+      food.food?.category === activeCategory;
+
+    const matchesSearch = foodName
       .toLowerCase()
       .includes(search.toLowerCase());
 
     return matchesCategory && matchesSearch;
   });
 
-  const handleAddFood = (e) => {
+  // Add a new food through the backend.
+  const handleAddFood = async (e) => {
     e.preventDefault();
 
     if (!newFood.name.trim()) return;
 
-    setFoods((previous) => [
-      ...previous,
-      {
-        ...newFood,
-        id: Date.now()
-      }
-    ]);
+    try {
+      setSaving(true);
+      setError('');
+      setSuccess('');
 
-    setNewFood({
-      name: '',
-      category: 'Meals',
-      note: '',
-      emoji: '🍽️'
-    });
+      const createdFood = await addSavedFood({
+        food_name: newFood.name.trim(),
+        category: newFood.category,
+        notes: newFood.note.trim() || null
+      });
 
-    setShowForm(false);
+      setFoods((previous) => [...previous, createdFood]);
+
+      setNewFood({
+        name: '',
+        category: 'Meals',
+        note: '',
+        emoji: '🍽️'
+      });
+
+      setShowForm(false);
+      setSuccess('Food added to your collection!');
+    } catch (err) {
+      setError(err.message || 'Unable to add this food.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteFood = (id) => {
-    setFoods((previous) => previous.filter((food) => food.id !== id));
+  // Delete a food through the backend.
+  const handleDeleteFood = async (id) => {
+    try {
+      setError('');
+      setSuccess('');
+
+      await deleteSavedFood(id);
+
+      setFoods((previous) =>
+        previous.filter((food) => food.id !== id)
+      );
+
+      setSuccess('Food removed from your collection.');
+    } catch (err) {
+      setError(err.message || 'Unable to remove this food.');
+    }
   };
 
   return (
@@ -151,7 +164,7 @@ function SafeFoods() {
           <Sparkles className="summary-sparkle" size={23} />
         </section>
 
-        {/* FOOD LIST HEADER */}
+        {/* FOOD LIST */}
         <section className="safefoods-list-section">
 
           <div className="safefoods-toolbar">
@@ -163,12 +176,25 @@ function SafeFoods() {
             <button
               type="button"
               className="add-food-button"
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setError('');
+                setSuccess('');
+                setShowForm(true);
+              }}
             >
               <Plus size={18} />
               Add a food
             </button>
           </div>
+
+          {/* FEEDBACK */}
+          {error && (
+            <p role="alert">{error}</p>
+          )}
+
+          {success && (
+            <p role="status">{success}</p>
+          )}
 
           {/* SEARCH */}
           <div className="safefoods-search">
@@ -209,50 +235,65 @@ function SafeFoods() {
           {/* FOOD CARDS */}
           <div className="safefoods-grid">
 
-            {filteredFoods.length > 0 ? (
-              filteredFoods.map((food) => (
-                <article className="safefood-card" key={food.id}>
+            {loading ? (
+              <p>Loading your familiar foods...</p>
+            ) : filteredFoods.length > 0 ? (
+              filteredFoods.map((item) => {
+                const food = item.food || {};
 
-                  <div className="safefood-card-top">
-                    <div className="safefood-emoji">
-                      {food.emoji}
+                return (
+                  <article className="safefood-card" key={item.id}>
+
+                    <div className="safefood-card-top">
+                      <div className="safefood-emoji">
+                        🍽️
+                      </div>
+
+                      <button
+                        type="button"
+                        className="delete-food-button"
+                        onClick={() => handleDeleteFood(item.id)}
+                        aria-label={`Remove ${food.name}`}
+                      >
+                        <Trash2 size={17} />
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      className="delete-food-button"
-                      onClick={() => handleDeleteFood(food.id)}
-                      aria-label={`Remove ${food.name}`}
-                    >
-                      <Trash2 size={17} />
-                    </button>
-                  </div>
+                    <span className="safefood-category">
+                      {food.category || 'Other'}
+                    </span>
 
-                  <span className="safefood-category">
-                    {food.category}
-                  </span>
+                    <h3>{food.name}</h3>
 
-                  <h3>{food.name}</h3>
+                    <p>
+                      {item.notes || 'A familiar favourite'}
+                    </p>
 
-                  <p>{food.note || 'A familiar favourite'}</p>
+                    <div className="safefood-card-footer">
+                      <Heart size={15} />
+                      <span>One of your favourites</span>
+                    </div>
 
-                  <div className="safefood-card-footer">
-                    <Heart size={15} />
-                    <span>One of your favourites</span>
-                  </div>
-
-                </article>
-              ))
+                  </article>
+                );
+              })
             ) : (
               <div className="safefoods-empty">
                 <Utensils size={30} />
-                <h3>No foods found</h3>
-                <p>Try another search or add a new familiar food.</p>
+                <h3>
+                  {foods.length === 0
+                    ? 'Your collection is waiting'
+                    : 'No foods found'}
+                </h3>
+                <p>
+                  {foods.length === 0
+                    ? 'Add a familiar food to get started.'
+                    : 'Try another search or add a new familiar food.'}
+                </p>
               </div>
             )}
 
           </div>
-
         </section>
 
         {/* GENTLE REMINDER */}
@@ -276,7 +317,7 @@ function SafeFoods() {
       {showForm && (
         <div
           className="safefood-modal-overlay"
-          onClick={() => setShowForm(false)}
+          onClick={() => !saving && setShowForm(false)}
         >
           <div
             className="safefood-modal"
@@ -288,7 +329,9 @@ function SafeFoods() {
 
             <div className="modal-header">
               <div>
-                <span className="safefoods-eyebrow">YOUR COLLECTION</span>
+                <span className="safefoods-eyebrow">
+                  YOUR COLLECTION
+                </span>
                 <h2 id="add-food-title">Add a familiar food</h2>
               </div>
 
@@ -297,6 +340,7 @@ function SafeFoods() {
                 className="modal-close"
                 onClick={() => setShowForm(false)}
                 aria-label="Close form"
+                disabled={saving}
               >
                 <X size={20} />
               </button>
@@ -312,7 +356,10 @@ function SafeFoods() {
                   placeholder="e.g. Pancakes"
                   value={newFood.name}
                   onChange={(e) =>
-                    setNewFood({ ...newFood, name: e.target.value })
+                    setNewFood({
+                      ...newFood,
+                      name: e.target.value
+                    })
                   }
                   required
                   autoFocus
@@ -325,12 +372,19 @@ function SafeFoods() {
                   id="food-category"
                   value={newFood.category}
                   onChange={(e) =>
-                    setNewFood({ ...newFood, category: e.target.value })
+                    setNewFood({
+                      ...newFood,
+                      category: e.target.value
+                    })
                   }
                 >
-                  {categories.filter((item) => item !== 'All').map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
+                  {categories
+                    .filter((item) => item !== 'All')
+                    .map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -340,7 +394,10 @@ function SafeFoods() {
                   id="food-emoji"
                   value={newFood.emoji}
                   onChange={(e) =>
-                    setNewFood({ ...newFood, emoji: e.target.value })
+                    setNewFood({
+                      ...newFood,
+                      emoji: e.target.value
+                    })
                   }
                 >
                   <option value="🍽️">🍽️ Food</option>
@@ -365,15 +422,22 @@ function SafeFoods() {
                   placeholder="A little note about this food..."
                   value={newFood.note}
                   onChange={(e) =>
-                    setNewFood({ ...newFood, note: e.target.value })
+                    setNewFood({
+                      ...newFood,
+                      note: e.target.value
+                    })
                   }
                   rows={3}
                 />
               </div>
 
-              <button type="submit" className="save-food-button">
+              <button
+                type="submit"
+                className="save-food-button"
+                disabled={saving}
+              >
                 <Plus size={17} />
-                Add to my collection
+                {saving ? 'Adding...' : 'Add to my collection'}
               </button>
 
             </form>

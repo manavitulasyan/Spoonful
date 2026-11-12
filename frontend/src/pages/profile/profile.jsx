@@ -1,391 +1,300 @@
-
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  UserRound,
-  Heart,
-  Utensils,
-  BookOpen,
-  Pencil,
-  Save,
-  X,
-  LogOut,
-  Sparkles,
-  ChevronRight
-} from 'lucide-react';
+  getProfile,
+  updateProfile,
+  getPreferences,
+  getSavedFoods,
+  getJournalEntries,
+  logoutUser,
+} from '../../services/api';
 
-import Navbar from '../../components/layout/Navbar';
-import './profile.css';
+// Keep your existing icon imports if your original file uses them.
+
+const preferenceGroups = [
+  { title: 'Texture', key: 'texture_preferences' },
+  { title: 'Taste', key: 'taste_preferences' },
+  { title: 'Smell', key: 'smell_sensitivity' },
+  { title: 'Temperature', key: 'temperature_preferences' },
+  { title: 'Appearance', key: 'appearance_preferences' },
+];
 
 function Profile() {
-  const location = useLocation();
   const navigate = useNavigate();
 
-  const user = location.state?.user || {};
+  const [profile, setProfile] = useState(null);
+  const [preferences, setPreferences] = useState({});
+  const [savedFoods, setSavedFoods] = useState([]);
+  const [journalCount, setJournalCount] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState({
-    name: user.name || 'Spoonful User',
-    email: user.email || 'hello@example.com',
-    bio: 'Exploring food, one experience at a time.'
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
   });
 
-  const preferences = location.state?.preferences || {};
+  useEffect(() => {
+    async function loadProfileData() {
+      try {
+        setLoading(true);
+        setError('');
 
-  const [editData, setEditData] = useState(profile);
+        const results = await Promise.allSettled([
+          getProfile(),
+          getPreferences(),
+          getSavedFoods(),
+          getJournalEntries(),
+        ]);
 
-  const preferenceGroups = [
-    { title: 'Texture', key: 'texture' },
-    { title: 'Taste', key: 'taste' },
-    { title: 'Smell', key: 'smell' },
-    { title: 'Temperature', key: 'temperature' },
-    { title: 'Appearance', key: 'appearance' }
-  ];
+        if (results[0].status === 'rejected') {
+          throw results[0].reason;
+        }
 
-  const savedFoods = ['Creamy pasta', 'Strawberries', 'Sandwich'];
-  const journalCount = 3;
+        const profileData = results[0].value;
 
-  const getPreferenceText = (value) => {
-    if (!value) return 'Not added yet';
+        setProfile(profileData);
+        setEditForm({
+          name: profileData.name || '',
+          email: profileData.email || '',
+        });
 
-    if (Array.isArray(value)) {
-      return value.length ? value.join(', ') : 'Not added yet';
+        setPreferences(
+          results[1].status === 'fulfilled'
+            ? results[1].value
+            : {}
+        );
+
+        setSavedFoods(
+          results[2].status === 'fulfilled'
+            ? results[2].value
+            : []
+        );
+
+        setJournalCount(
+          results[3].status === 'fulfilled'
+            ? results[3].value.length
+            : 0
+        );
+      } catch (err) {
+        setError(err.message || 'Unable to load your profile.');
+      } finally {
+        setLoading(false);
+      }
     }
 
-    return value;
-  };
+    loadProfileData();
+  }, []);
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
+  const handleEditChange = (event) => {
+    const { name, value } = event.target;
 
-    setEditData((previous) => ({
+    setEditForm((previous) => ({
       ...previous,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    setProfile(editData);
-    setIsEditing(false);
+  const handleSaveProfile = async (event) => {
+    event.preventDefault();
+
+    try {
+      setSaving(true);
+      setError('');
+      setSuccessMessage('');
+
+      const updatedProfile = await updateProfile({
+        name: editForm.name.trim(),
+        email: editForm.email.trim(),
+      });
+
+      setProfile(updatedProfile);
+      setEditForm({
+        name: updatedProfile.name,
+        email: updatedProfile.email,
+      });
+
+      setIsEditing(false);
+      setSuccessMessage('Profile updated successfully!');
+    } catch (err) {
+      setError(err.message || 'Unable to update your profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleLogout = () => {
-    navigate('/');
+    logoutUser();
+    navigate('/login', { replace: true });
   };
+
+  if (loading) {
+    return <div className="profile-page">Loading your profile...</div>;
+  }
+
+  if (error && !profile) {
+    return (
+      <div className="profile-page">
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page">
+      {/* Profile header */}
+      <section className="profile-header">
+        <div className="profile-avatar">
+          {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+        </div>
 
-      <Navbar />
+        <div className="profile-info">
+          <h1>{profile?.name}</h1>
+          <p>{profile?.email}</p>
+        </div>
 
-      <main className="profile-container">
-
-        {/* PAGE HEADING */}
-        <section className="profile-heading">
-          <span className="profile-eyebrow">
-            <UserRound size={15} />
-            YOUR PERSONAL SPACE
-          </span>
-
-          <h1>Your profile.</h1>
-
-          <p>
-            A little overview of you, your preferences
-            and everything you've explored with Spoonful.
-          </p>
-        </section>
-
-        {/* PROFILE CARD */}
-        <section className="profile-main-card">
-
-          <div className="profile-avatar">
-            {profile.name.charAt(0).toUpperCase()}
-          </div>
-
-          <div className="profile-main-info">
-            <span className="profile-member-label">
-              SPOONFUL MEMBER
-            </span>
-
-            <h2>{profile.name}</h2>
-            <p>{profile.email}</p>
-            <span className="profile-bio">{profile.bio}</span>
-          </div>
-
-          <button
-            type="button"
-            className="edit-profile-button"
-            onClick={() => {
-              setEditData(profile);
-              setIsEditing(true);
-            }}
-          >
-            <Pencil size={16} />
-            Edit profile
-          </button>
-
-        </section>
-
-        {/* PROFILE STATS */}
-        <section className="profile-stats">
-
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon">
-              <Heart size={20} />
-            </div>
-            <div>
-              <h3>{savedFoods.length}</h3>
-              <p>Familiar foods</p>
-            </div>
-          </div>
-
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon">
-              <BookOpen size={20} />
-            </div>
-            <div>
-              <h3>{journalCount}</h3>
-              <p>Journal entries</p>
-            </div>
-          </div>
-
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon">
-              <Utensils size={20} />
-            </div>
-            <div>
-              <h3>5</h3>
-              <p>Preference areas</p>
-            </div>
-          </div>
-
-        </section>
-
-        {/* SENSORY PREFERENCES */}
-        <section className="profile-section">
-
-          <div className="profile-section-heading">
-            <div>
-              <span className="profile-section-eyebrow">
-                WHAT FEELS RIGHT
-              </span>
-              <h2>Your sensory preferences</h2>
-              <p>
-                Your preferences help Spoonful make
-                food exploration feel more comfortable.
-              </p>
-            </div>
-
-            <Sparkles size={23} />
-          </div>
-
-          <div className="preference-grid">
-
-            {preferenceGroups.map((group) => {
-              const selected = preferences[group.key];
-
-              return (
-                <div className="preference-card" key={group.key}>
-                  <span>{group.title}</span>
-
-                  <p>
-                    {getPreferenceText(selected)}
-                  </p>
-                </div>
-              );
-            })}
-
-          </div>
-
-          <button
-            type="button"
-            className="preference-edit-link"
-            onClick={() => navigate('/onboarding')}
-          >
-            Update my preferences
-            <ChevronRight size={17} />
-          </button>
-
-        </section>
-
-        {/* SAVED FOODS */}
-        <section className="profile-section">
-
-          <div className="profile-section-heading">
-            <div>
-              <span className="profile-section-eyebrow">
-                YOUR COMFORT CORNER
-              </span>
-              <h2>Familiar foods</h2>
-              <p>
-                Foods you've kept close along your journey.
-              </p>
-            </div>
-
-            <Heart size={23} />
-          </div>
-
-          <div className="profile-food-list">
-
-            {savedFoods.map((food, index) => {
-              const emojis = ['🍝', '🍓', '🥪'];
-
-              return (
-                <div className="profile-food-item" key={food}>
-                  <span className="profile-food-emoji">
-                    {emojis[index]}
-                  </span>
-
-                  <span>{food}</span>
-
-                  <Heart size={16} />
-                </div>
-              );
-            })}
-
-          </div>
-
-          <button
-            type="button"
-            className="preference-edit-link"
-            onClick={() => navigate('/safefoods')}
-          >
-            View all familiar foods
-            <ChevronRight size={17} />
-          </button>
-
-        </section>
-
-        {/* JOURNEY BANNER */}
-        <section className="profile-journey-banner">
-          <div>
-            <span>YOUR JOURNEY, YOUR PACE</span>
-            <h2>There's no right way to explore food.</h2>
-            <p>
-              Keep discovering what works for you.
-              Every little experience counts.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => navigate('/recipes')}
-            >
-              Explore recipes
-              <ChevronRight size={17} />
-            </button>
-          </div>
-
-          <div className="profile-journey-decoration">
-            ✳
-          </div>
-        </section>
-
-        {/* ACCOUNT ACTIONS */}
-        <section className="profile-account-section">
-
-          <h2>Account</h2>
-
-          <button
-            type="button"
-            className="profile-logout-button"
-            onClick={handleLogout}
-          >
-            <LogOut size={17} />
-            Log out
-          </button>
-
-        </section>
-
-      </main>
-
-      {/* EDIT PROFILE MODAL */}
-      {isEditing && (
-        <div
-          className="profile-modal-overlay"
-          onClick={() => setIsEditing(false)}
+        <button
+          className="edit-profile-btn"
+          onClick={() => {
+            setEditForm({
+              name: profile?.name || '',
+              email: profile?.email || '',
+            });
+            setIsEditing(true);
+          }}
         >
-          <div
-            className="profile-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="profile-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
+          Edit Profile
+        </button>
+      </section>
 
-            <div className="profile-modal-header">
-              <div>
-                <span className="profile-section-eyebrow">
-                  YOUR ACCOUNT
-                </span>
-                <h2 id="profile-modal-title">Edit profile</h2>
-              </div>
+      {error && <p className="error-message">{error}</p>}
+      {successMessage && (
+        <p className="success-message">{successMessage}</p>
+      )}
 
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                aria-label="Close edit profile"
-              >
-                <X size={20} />
-              </button>
+      {/* Profile statistics */}
+      <section className="profile-stats">
+        <div className="stat-card">
+          <h2>{savedFoods.length}</h2>
+          <p>Saved Foods</p>
+        </div>
+
+        <div className="stat-card">
+          <h2>{journalCount}</h2>
+          <p>Journal Entries</p>
+        </div>
+
+        <div className="stat-card">
+          <h2>
+            {preferenceGroups.filter(
+              (group) => preferences[group.key]
+            ).length}
+          </h2>
+          <p>Preference Areas</p>
+        </div>
+      </section>
+
+      {/* Sensory preferences */}
+      <section className="profile-section">
+        <h2>My Sensory Preferences</h2>
+
+        <div className="preferences-grid">
+          {preferenceGroups.map((group) => (
+            <div className="preference-card" key={group.key}>
+              <h3>{group.title}</h3>
+              <p>
+                {preferences[group.key] || 'Not set yet'}
+              </p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Saved foods */}
+      <section className="profile-section">
+        <h2>My Saved Foods</h2>
+
+        {savedFoods.length === 0 ? (
+          <p>You haven't saved any foods yet.</p>
+        ) : (
+          <div className="saved-foods-list">
+            {savedFoods.map((item) => (
+              <div className="saved-food-item" key={item.id}>
+                <span>🍽️</span>
+                <span>{item.food?.name || 'Food'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Journey section */}
+      <section className="profile-section">
+        <h2>Your Spoonful Journey</h2>
+        <p>
+          Keep exploring foods, recording your experiences, and
+          discovering your preferences.
+        </p>
+      </section>
+
+      {/* Edit profile modal */}
+      {isEditing && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Edit Profile</h2>
 
             <form onSubmit={handleSaveProfile}>
+              <label htmlFor="profile-name">Name</label>
+              <input
+                id="profile-name"
+                type="text"
+                name="name"
+                value={editForm.name}
+                onChange={handleEditChange}
+                minLength={2}
+                maxLength={100}
+                required
+              />
 
-              <div className="profile-form-group">
-                <label htmlFor="profile-name">Your name</label>
-                <input
-                  id="profile-name"
-                  type="text"
-                  name="name"
-                  value={editData.name}
-                  onChange={handleEditChange}
-                  required
-                />
+              <label htmlFor="profile-email">Email</label>
+              <input
+                id="profile-email"
+                type="email"
+                name="email"
+                value={editForm.email}
+                onChange={handleEditChange}
+                required
+              />
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
-
-              <div className="profile-form-group">
-                <label htmlFor="profile-email">Email address</label>
-                <input
-                  id="profile-email"
-                  type="email"
-                  name="email"
-                  value={editData.email}
-                  onChange={handleEditChange}
-                  required
-                />
-              </div>
-
-              <div className="profile-form-group">
-                <label htmlFor="profile-bio">A little about you</label>
-                <textarea
-                  id="profile-bio"
-                  name="bio"
-                  rows={3}
-                  value={editData.bio}
-                  onChange={handleEditChange}
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="profile-save-button"
-              >
-                <Save size={17} />
-                Save changes
-              </button>
-
             </form>
-
           </div>
         </div>
       )}
 
-      <footer className="profile-footer">
-        spoonful © 2026
-        <span>Made with care, one bite at a time.</span>
-      </footer>
-
+      {/* Logout */}
+      <button className="logout-btn" onClick={handleLogout}>
+        Log Out
+      </button>
     </div>
   );
 }

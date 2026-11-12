@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowRight,
   Eye,
@@ -10,19 +9,26 @@ import {
 } from 'lucide-react';
 
 import Brand from '../../components/layout/Brand';
+import {
+  loginUser,
+  getCurrentUser,
+  getPreferences,
+  logoutUser
+} from '../../services/api';
 import './login.css';
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
-    email: '',
+    email: location.state?.email || '',
     password: ''
   });
-
-  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,20 +38,98 @@ function Login() {
       [name]: value
     }));
 
-    setError('');
+    if (error) {
+      setError('');
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.email || !formData.password) {
-      setError('Please enter your email and password.');
+    if (loading) return;
+
+    setError('');
+
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!email || !password) {
+      setError('Please enter both your email address and password.');
       return;
     }
 
-    // Temporary frontend flow.
-    // Real login authentication will be connected to FastAPI later.
-    navigate('/dashboard');
+    setLoading(true);
+
+    try {
+      // Step 1: Authenticate the user.
+      await loginUser({
+  email,
+  password
+});
+
+// Get the logged-in user.
+const user = await getCurrentUser();
+
+// Check whether onboarding preferences exist.
+try {
+  await getPreferences();
+
+  // Existing user who has completed onboarding.
+  navigate('/dashboard', {
+    replace: true,
+    state: { user }
+  });
+
+} catch (preferenceError) {
+  const message = preferenceError.message?.toLowerCase() || '';
+
+  if (
+    message.includes('not found') ||
+    message.includes('404')
+  ) {
+    // New user who has not completed onboarding.
+    navigate('/onboarding', {
+      replace: true,
+      state: { user }
+    });
+  } else {
+    throw preferenceError;
+  }
+}
+
+    } catch (err) {
+      // Remove a token if authentication or token verification failed.
+      logoutUser();
+
+      const message = err.message?.toLowerCase() || '';
+
+      if (
+        message.includes('failed to fetch') ||
+        message.includes('networkerror') ||
+        message.includes('load failed')
+      ) {
+        setError(
+          'Unable to connect to Spoonful. Please check that the backend server is running.'
+        );
+      } else if (
+        message.includes('401') ||
+        message.includes('incorrect') ||
+        message.includes('invalid email') ||
+        message.includes('invalid credentials') ||
+        message.includes('password')
+      ) {
+        setError(
+          'Invalid email or password. Please check your details or sign up if you are new to Spoonful.'
+        );
+      } else {
+        setError(
+          err.message || 'Login failed. Please try again.'
+        );
+      }
+
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -53,14 +137,12 @@ function Login() {
 
       {/* NAVBAR */}
       <nav className="login-nav">
-
         <Brand to="/" className="login-brand" />
 
         <p>
           New to Spoonful?
           <Link to="/signup"> Create an account</Link>
         </p>
-
       </nav>
 
       {/* MAIN CONTENT */}
@@ -112,10 +194,17 @@ function Login() {
               Log in to continue your Spoonful journey.
             </p>
 
-            <form onSubmit={handleSubmit}>
+            {location.state?.message && (
+              <p className="login-success" role="status">
+                {location.state.message}
+              </p>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate>
 
               {/* EMAIL */}
               <div className="login-form-group">
+
                 <label htmlFor="login-email">
                   Email address
                 </label>
@@ -129,16 +218,20 @@ function Login() {
                   onChange={handleChange}
                   autoComplete="email"
                   required
+                  aria-invalid={!!error}
                 />
+
               </div>
 
               {/* PASSWORD */}
               <div className="login-form-group">
+
                 <label htmlFor="login-password">
                   Password
                 </label>
 
                 <div className="login-password-wrapper">
+
                   <input
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}
@@ -148,6 +241,7 @@ function Login() {
                     onChange={handleChange}
                     autoComplete="current-password"
                     required
+                    aria-invalid={!!error}
                   />
 
                   <button
@@ -165,12 +259,12 @@ function Login() {
                       : <Eye size={18} />
                     }
                   </button>
+
                 </div>
+
               </div>
 
-            
-
-              {/* ERROR */}
+              {/* ERROR MESSAGE */}
               {error && (
                 <p className="login-error" role="alert">
                   {error}
@@ -181,9 +275,11 @@ function Login() {
               <button
                 type="submit"
                 className="login-submit"
+                disabled={loading}
               >
-                Log in
-                <ArrowRight size={18} />
+                {loading ? 'Logging in...' : 'Log in'}
+
+                {!loading && <ArrowRight size={18} />}
               </button>
 
             </form>

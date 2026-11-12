@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -7,6 +6,7 @@ class PreferenceCreate(BaseModel):
     texture_preferences: str | None = None
     smell_sensitivity: str | None = Field(default=None, max_length=100)
     temperature_preferences: str | None = Field(default=None, max_length=100)
+    appearance_preferences: str | None = None
     dietary_restrictions: str | None = None
 
 
@@ -15,6 +15,7 @@ class PreferenceUpdate(BaseModel):
     texture_preferences: str | None = None
     smell_sensitivity: str | None = Field(default=None, max_length=100)
     temperature_preferences: str | None = Field(default=None, max_length=100)
+    appearance_preferences: str | None = None
     dietary_restrictions: str | None = None
 
 
@@ -23,4 +24,3 @@ class PreferenceResponse(PreferenceCreate):
     user_id: int
 
     model_config = ConfigDict(from_attributes=True)
-

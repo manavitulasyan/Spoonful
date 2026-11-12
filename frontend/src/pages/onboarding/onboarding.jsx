@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
@@ -7,6 +6,12 @@ import {
   Sparkles,
   Check
 } from 'lucide-react';
+
+import {
+  getPreferences,
+  createPreferences,
+  updatePreferences
+} from '../../services/api';
 
 import './onboarding.css';
 
@@ -53,7 +58,6 @@ function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Receive signup details from the signup page.
   const userDetails = location.state || {};
 
   const [preferences, setPreferences] = useState({
@@ -65,6 +69,8 @@ function Onboarding() {
   });
 
   const [activeStep, setActiveStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const currentGroup = preferenceGroups[activeStep];
 
@@ -81,13 +87,51 @@ function Onboarding() {
     });
   };
 
-  const finishOnboarding = () => {
-    navigate('/dashboard', {
-      state: {
-        user: userDetails,
-        preferences: preferences
+  // Convert selected arrays into the strings expected by FastAPI.
+  const preparePreferences = () => ({
+    texture_preferences: preferences.texture.join(', ') || null,
+    taste_preferences: preferences.taste.join(', ') || null,
+    smell_sensitivity: preferences.smell.join(', ') || null,
+    temperature_preferences: preferences.temperature.join(', ') || null,
+    appearance_preferences: preferences.appearance.join(', ') || null
+  });
+
+  // Save new preferences or update existing ones.
+  const finishOnboarding = async () => {
+    try {
+      setSaving(true);
+      setError('');
+
+      const preferenceData = preparePreferences();
+
+      try {
+        await getPreferences();
+        await updatePreferences(preferenceData);
+      } catch (fetchError) {
+        if (
+          fetchError.message?.includes('not found') ||
+          fetchError.message?.includes('404')
+        ) {
+          await createPreferences(preferenceData);
+        } else {
+          throw fetchError;
+        }
       }
-    });
+
+      navigate('/dashboard', {
+        replace: true,
+        state: {
+          user: userDetails,
+          preferences
+        }
+      });
+    } catch (err) {
+      setError(
+        err.message || 'Unable to save your preferences. Please try again.'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleNext = () => {
@@ -99,7 +143,7 @@ function Onboarding() {
   };
 
   const handleBack = () => {
-    if (activeStep > 0) {
+    if (activeStep > 0 && !saving) {
       setActiveStep((previous) => previous - 1);
     }
   };
@@ -116,6 +160,7 @@ function Onboarding() {
           className="skip-button"
           type="button"
           onClick={finishOnboarding}
+          disabled={saving}
         >
           Skip for now
         </button>
@@ -195,13 +240,19 @@ function Onboarding() {
 
           </div>
 
+          {error && (
+            <p role="alert" className="onboarding-error">
+              {error}
+            </p>
+          )}
+
           <div className="preference-navigation">
 
             <button
               type="button"
               className="back-button"
               onClick={handleBack}
-              disabled={activeStep === 0}
+              disabled={activeStep === 0 || saving}
             >
               <ArrowLeft size={17} />
               Back
@@ -211,11 +262,14 @@ function Onboarding() {
               type="button"
               className="continue-button"
               onClick={handleNext}
+              disabled={saving}
             >
-              {activeStep === preferenceGroups.length - 1
-                ? 'Finish'
-                : 'Continue'}
-              <ArrowRight size={17} />
+              {saving
+                ? 'Saving...'
+                : activeStep === preferenceGroups.length - 1
+                  ? 'Finish'
+                  : 'Continue'}
+              {!saving && <ArrowRight size={17} />}
             </button>
 
           </div>

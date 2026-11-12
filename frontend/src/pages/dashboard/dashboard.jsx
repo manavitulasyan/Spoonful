@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Sparkles,
   Heart,
@@ -13,22 +13,50 @@ import {
 } from 'lucide-react';
 
 import Navbar from '../../components/layout/Navbar';
+import {
+  getCurrentUser,
+  getSavedFoods
+} from '../../services/api';
+
 import './dashboard.css';
 
 function Dashboard() {
-    const location = useLocation();
-
-const user = location.state?.user || {};
-const preferences = location.state?.preferences || {};
-
-const displayName = user.name || 'there';
+  const [user, setUser] = useState({});
+  const [savedFoods, setSavedFoods] = useState([]);
   const [feeling, setFeeling] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const displayName = user.name || 'there';
 
   const feelings = [
     { label: 'Comfortable', icon: Smile },
     { label: 'Neutral', icon: Meh },
     { label: 'Unsure', icon: CloudSun }
   ];
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [userData, foodData] = await Promise.all([
+          getCurrentUser(),
+          getSavedFoods()
+        ]);
+
+        setUser(userData);
+        setSavedFoods(foodData);
+      } catch (err) {
+        setError(err.message || 'Unable to load your dashboard.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
 
   return (
     <div className="dashboard-page">
@@ -96,7 +124,7 @@ const displayName = user.name || 'there';
           </div>
         </section>
 
-        {/* SAFE FOODS */}
+        {/* SAVED FOODS */}
         <section className="dashboard-section">
 
           <div className="section-heading">
@@ -113,23 +141,28 @@ const displayName = user.name || 'there';
 
           <div className="food-preview-grid">
 
-            <div className="food-preview-card">
-              <div className="food-emoji">🍝</div>
-              <div>
-                <h3>Pasta</h3>
-                <span>Familiar favourite</span>
-              </div>
-              <Heart size={17} />
-            </div>
+            {loading ? (
+              <p>Loading your saved foods...</p>
+            ) : error ? (
+              <p>{error}</p>
+            ) : savedFoods.length > 0 ? (
+              savedFoods.slice(0, 2).map((item) => (
+                <div className="food-preview-card" key={item.id}>
+                  <div className="food-emoji">🍽️</div>
 
-            <div className="food-preview-card">
-              <div className="food-emoji">🥪</div>
-              <div>
-                <h3>Sandwich</h3>
-                <span>Easy and familiar</span>
-              </div>
-              <Heart size={17} />
-            </div>
+                  <div>
+                    <h3>{item.food?.name || 'Saved food'}</h3>
+                    <span>
+                      {item.notes || item.food?.category || 'Familiar favourite'}
+                    </span>
+                  </div>
+
+                  <Heart size={17} />
+                </div>
+              ))
+            ) : (
+              <p>You haven't added any familiar foods yet.</p>
+            )}
 
             <Link to="/safefoods" className="add-food-card">
               <Plus size={23} />
